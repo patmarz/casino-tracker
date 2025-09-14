@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Casino Tracker</title>
-<link rel="manifest" href="manifest.json?v=1.0.3">
+<link rel="manifest" href="manifest.json?v=1.0.4">
 <meta name="theme-color" content="#0ea5e9">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -18,7 +18,7 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;background:linear-gradient(180deg,#0b1220,#0b1220 220px,#0d1426);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;}
-.container{max-width:980px;margin:0 auto;padding:16px 16px 120px;}
+.container{max-width:980px;margin:0 auto;padding:16px 16px 60px;} /* less bottom padding now that sticky bar is gone */
 h1{font-size:28px;margin:0}
 h2{font-size:18px;margin:0 0 8px}
 .muted{color:var(--muted)}
@@ -44,11 +44,6 @@ th{color:var(--muted);font-weight:600}
 .chip{display:inline-block;background:#0b1220;border:1px solid var(--line);padding:6px 10px;border-radius:999px;font-size:12px;color:var(--muted)}
 .err{color:#fca5a5;font-size:12px}
 .truncate{max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sticky-bar{position:fixed;left:0;right:0;bottom:0;padding:10px env(safe-area-inset-right) calc(10px + env(safe-area-inset-bottom)) env(safe-area-inset-left);background:rgba(13,20,38,.85);backdrop-filter:blur(8px);border-top:1px solid #223046;z-index:50}
-.sticky-bar .bar{max-width:980px;margin:0 auto;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-.sticky-bar .quick{display:flex;gap:8px;flex-wrap:wrap}
-.sticky-bar button{padding:12px 14px}
-.sticky-bar .primary{padding:12px 18px;font-weight:700}
 .update-banner{position:sticky;top:0;z-index:60;background:#05222c;color:#a5f3fc;border-bottom:1px solid #0b3b4a;padding:8px 16px;display:none}
 .update-banner.show{display:block}
 .update-banner .row{justify-content:space-between}
@@ -63,7 +58,7 @@ th{color:var(--muted);font-weight:600}
   <div id="updateBanner" class="update-banner">
     <div class="row">
       <div>New version available.</div>
-      <div class="row"><button id="refreshBtn" class="small">Refresh</button><span class="chip">v1.0.3</span></div>
+      <div class="row"><button id="refreshBtn" class="small">Refresh</button><span class="chip">v1.0.4</span></div>
     </div>
   </div>
 
@@ -164,21 +159,9 @@ th{color:var(--muted);font-weight:600}
     </section>
   </div>
 
-  <div class="sticky-bar">
-    <div class="bar">
-      <div class="quick">
-        <button class="small" data-qa="buy" data-value="5">+ Buy $5</button>
-        <button class="small" data-qa="buy" data-value="20">+ Buy $20</button>
-        <button class="small" data-qa="cash" data-value="5">+ Cash $5</button>
-        <button class="small" data-qa="cash" data-value="20">+ Cash $20</button>
-      </div>
-      <button id="quickSaveBtn" class="primary">Add Session</button>
-    </div>
-  </div>
-
 <script>
 (function(){
-  const VERSION = "1.0.3";
+  const VERSION = "1.0.4";
   const KEY = 'ct:sessions:v3';
   const BKP_KEY = 'ct:undo';
 
@@ -196,7 +179,6 @@ th{color:var(--muted);font-weight:600}
     fDateFrom: $('fDateFrom'), fDateTo: $('fDateTo'), fGame: $('fGame'), fResult: $('fResult'), clearFiltersBtn: $('clearFiltersBtn'),
     tbody: $('tbody'), shownCount: $('shownCount'),
     kSessions: $('kSessions'), kNet: $('kNet'), kMinutes: $('kMinutes'), kNph: $('kNph'),
-    quickSaveBtn: $('quickSaveBtn'),
     exportCsvBtn: $('exportCsvBtn'), exportJsonBtn: $('exportJsonBtn'), importJsonBtn: $('importJsonBtn'), importJsonInput: $('importJsonInput'),
     undoBtn: $('undoBtn'),
     updateBanner: document.getElementById('updateBanner'),
@@ -357,17 +339,6 @@ th{color:var(--muted);font-weight:600}
   el.clearFiltersBtn.addEventListener('click', ()=>{ el.fDateFrom.value=''; el.fDateTo.value=''; el.fGame.value=''; el.fResult.value=''; render(); });
 
   el.undoBtn.addEventListener('click', ()=>{ if(rollback()){ render(); } });
-
-  document.querySelector('.sticky-bar').addEventListener('click', (e)=>{
-    const b = e.target.closest('button'); if(!b) return;
-    if(b.id==='quickSaveBtn'){
-      el.form.requestSubmit(); return;
-    }
-    const qa = b.getAttribute('data-qa'); const val = Number(b.getAttribute('data-value'))||0;
-    if(qa==='buy') el.buyIn.value = parseNum(el.buyIn.value) + val;
-    if(qa==='cash') el.cashOut.value = parseNum(el.cashOut.value) + val;
-    updateLive();
-  });
 
   el.exportCsvBtn.addEventListener('click', ()=>{
     const header=['date','location','game','machine','minutes','buyIn','cashOut','net','notes'];
