@@ -9,13 +9,6 @@
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="styles.css" />
   <script src="app.js" defer></script>
-  <script>
-    // Detect standalone (PWA) mode
-    const isStandalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      window.navigator.standalone;
-    if (isStandalone) document.documentElement.classList.add('standalone');
-  </script>
 </head>
 <body>
   <div class="hero">
@@ -27,6 +20,29 @@
       <button id="importJson">Import JSON</button>
     </div>
   </div>
-  <div id="app"></div>
+
+  <div class="form-container">
+    <h2>Add / Edit Session</h2>
+    <form id="sessionForm">
+      <label>Date <input type="date" id="date" required></label>
+      <label>Location <input type="text" id="location" placeholder="Casino name"></label>
+      <label>Game 
+        <select id="game">
+          <option value="Slots">Slots</option>
+          <option value="Blackjack">Blackjack</option>
+          <option value="Poker">Poker</option>
+          <option value="Roulette">Roulette</option>
+        </select>
+      </label>
+      <label>Machine <input type="text" id="machine" placeholder="e.g., Lightning Link"></label>
+      <label>Minutes <input type="number" id="minutes" placeholder="e.g., 7"></label>
+      <label>Buy-in <input type="number" id="buyIn" placeholder="0"></label>
+      <label>Cash-out <input type="number" id="cashOut" placeholder="0"></label>
+      <button type="submit">Add session</button>
+    </form>
+  </div>
+
+  <div id="summary"></div>
+  <div id="sessions"></div>
 </body>
 </html>

@@ -1,6 +1,6 @@
 self.addEventListener("install", e => {
   e.waitUntil(
-    caches.open("casino-tracker-v112").then(cache => {
+    caches.open("casino-tracker-v120").then(cache => {
       return cache.addAll([
         "/",
         "/index.html",
