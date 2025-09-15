@@ -1,48 +1,493 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Casino Tracker</title>
-  <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="styles.css" />
-  <script src="app.js" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Casino Tracker</title>
+<link rel="manifest" href="manifest.json?v=1.1.1">
+<meta name="theme-color" content="#0ea5e9">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Casino Tracker">
+<style>
+:root{
+  --bg:#0b1220;--card:#0f172a;--muted:#94a3b8;--text:#e5e7eb;--line:#1e293b;
+  --accent:#38bdf8;--accent2:#22c55e;--red:#ef4444;--amber:#f59e0b;
+  --shadow:0 1px 2px rgba(0,0,0,.25),0 8px 24px rgba(0,0,0,.25);
+  --radius:16px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:linear-gradient(180deg,#0b1220,#0b1220 220px,#0d1426);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;}
+.container{max-width:980px;margin:0 auto;padding:16px 16px 60px;}
+h1{font-size:28px;margin:0}
+h2{font-size:18px;margin:0 0 8px}
+.muted{color:var(--muted)}
+.hero{background:radial-gradient(1000px 260px at 20% -20%, #0891b2, transparent 60%),radial-gradient(800px 200px at 80% -50%, #22c55e, transparent 50%);}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+.grid{display:grid;gap:12px}
+@media(min-width:1000px){.grid-2{grid-template-columns:1.2fr .8fr}}
+input,select,textarea{width:100%;padding:14px;border:1px solid var(--line);border-radius:14px;background:#0b1220;color:var(--text);font:inherit;outline:none}
+input:focus,select:focus,textarea:focus{border-color:#0ea5e9; box-shadow:0 0 0 3px rgba(14,165,233,.2)}
+textarea{resize:vertical}
+button{font:inherit;border:1px solid var(--line);background:#0b1220;color:var(--text);border-radius:14px;padding:14px 16px;cursor:pointer;box-shadow:var(--shadow)}
+button.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#001018;border-color:transparent}
+button.small{padding:10px 12px;border-radius:12px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.row-right{margin-left:auto}
+table{width:100%;border-collapse:collapse}
+th,td{padding:12px;border-bottom:1px solid var(--line);text-align:left;font-size:16px;vertical-align:top}
+th{color:var(--muted);font-weight:600}
+.right{text-align:right}
+.net-pos{color:var(--accent2);font-weight:700}
+.net-neg{color:var(--red);font-weight:700}
+.badge{display:inline-block;background:#083344;color:#a5f3fc;border:1px solid #164e63;border-radius:999px;padding:6px 10px;font-size:12px}
+.chip{display:inline-block;background:#0b1220;border:1px solid var(--line);padding:6px 10px;border-radius:999px;font-size:12px;color:var(--muted)}
+.err{color:#fca5a5;font-size:12px}
+.truncate{max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.update-banner{position:sticky;top:0;z-index:60;background:#05222c;color:#a5f3fc;border-bottom:1px solid #0b3b4a;padding:8px 16px;display:none}
+.update-banner.show{display:block}
+.update-banner .row{justify-content:space-between}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:800px){.kpis{grid-template-columns:repeat(6,1fr)}}
+.kpi{background:#0c1426;border:1px solid var(--line);border-radius:14px;padding:12px}
+.kpi .label{color:var(--muted);font-size:12px}
+.kpi .value{font-size:22px;font-weight:700}
+
+/* Toast for backup reminder */
+.toast{
+  position:fixed;left:50%;transform:translateX(-50%);
+  bottom:20px;z-index:80;background:#0c1426;border:1px solid #22405a;
+  color:#dbeafe;padding:10px 14px;border-radius:14px;box-shadow:var(--shadow);
+  display:none;gap:10px;align-items:center;
+}
+.toast.show{display:flex}
+.toast button{padding:8px 12px;border-radius:10px}
+</style>
 </head>
 <body>
-  <div class="hero">
-    <h1>Casino Tracker</h1>
-    <p>In-the-moment tracking for slots & table games — works offline.</p>
-    <div class="export-buttons">
-      <button id="exportCsv">Export CSV</button>
-      <button id="exportJson">Export JSON</button>
-      <button id="importJson">Import JSON</button>
+  <div id="updateBanner" class="update-banner">
+    <div class="row">
+      <div>New version available.</div>
+      <div class="row"><button id="refreshBtn" class="small">Refresh</button><span class="chip">v1.1.1</span></div>
     </div>
   </div>
 
-  <div class="form-container">
-    <h2>Add / Edit Session</h2>
-    <form id="sessionForm">
-      <label>Date <input type="date" id="date" required></label>
-      <label>Location <input type="text" id="location" placeholder="Casino name"></label>
-      <label>Game 
-        <select id="game">
-          <option value="Slots">Slots</option>
-          <option value="Blackjack">Blackjack</option>
-          <option value="Poker">Poker</option>
-          <option value="Roulette">Roulette</option>
-        </select>
-      </label>
-      <label>Machine <input type="text" id="machine" placeholder="e.g., Lightning Link"></label>
-      <label>Minutes <input type="number" id="minutes" placeholder="e.g., 7"></label>
-      <label>Buy-in <input type="number" id="buyIn" placeholder="0"></label>
-      <label>Cash-out <input type="number" id="cashOut" placeholder="0"></label>
-      <button type="submit">Add session</button>
-    </form>
+  <div class="hero">
+    <div class="container" style="padding:18px 16px 8px">
+      <div class="row" style="justify-content:space-between;">
+        <div>
+          <h1>Casino Tracker</h1>
+          <div class="muted">In-the-moment tracking for slots & table games — works offline.</div>
+        </div>
+        <div class="row">
+          <button id="exportCsvBtn" title="Download CSV backup">Export CSV</button>
+          <button id="exportJsonBtn" title="Download JSON backup">Export JSON</button>
+          <label class="row" style="gap:8px">
+            <input id="importJsonInput" type="file" accept="application/json" style="display:none">
+            <button id="importJsonBtn" title="Restore from JSON file">Import JSON</button>
+          </label>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div id="summary"></div>
-  <div id="sessions"></div>
+  <div class="container">
+    <section class="grid grid-2" style="margin:16px 0">
+      <div class="card">
+        <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px">
+          <h2>Add / Edit Session</h2>
+          <div class="row">
+            <div class="badge" id="liveNet">Net updates live</div>
+            <button id="timerBtn" class="small" style="margin-left:8px" title="Start/Stop in-session timer">Start timer</button>
+            <span class="chip" id="timerStatus" title="Elapsed time" style="display:none"></span>
+          </div>
+        </div>
+        <form id="form" class="grid" style="grid-template-columns:1fr 1fr;gap:12px" novalidate>
+          <div><label class="muted" for="date">Date</label><input id="date" type="date" required><div class="err" id="eDate"></div></div>
+          <div><label class="muted" for="location">Location</label><input id="location" placeholder="Casino name"></div>
+          <div><label class="muted" for="game">Game</label>
+            <select id="game">
+              <option>Slots</option><option>Blackjack</option><option>Poker</option><option>Roulette</option><option>Craps</option><option>Sportsbook</option><option>Video Poker</option>
+            </select>
+          </div>
+          <div><label class="muted" for="machine">Machine</label>
+            <input id="machine" placeholder="e.g., Lightning Link — Sahara Gold" list="machinesList" autocomplete="off">
+            <datalist id="machinesList"></datalist>
+          </div>
+          <div><label class="muted" for="minutes">Minutes</label><input id="minutes" type="number" min="0" step="1" placeholder="e.g., 7"></div>
+          <div><label class="muted" for="buyIn">Buy-in</label><input id="buyIn" inputmode="decimal" placeholder="0"></div>
+          <div><label class="muted" for="cashOut">Cash-out</label><input id="cashOut" inputmode="decimal" placeholder="0"></div>
+          <div style="grid-column:1/-1"><label class="muted" for="notes">Notes</label><textarea id="notes" rows="2" placeholder="#promo #comp … anything useful"></textarea></div>
+          <div class="row" style="grid-column:1/-1">
+            <button class="primary" id="saveBtn" type="submit">Add session</button>
+            <button id="cancelEditBtn" type="button" style="display:none">Cancel</button>
+            <div class="row-right muted" id="hint"></div>
+          </div>
+          <div class="err" id="eForm" style="grid-column:1/-1"></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Filters</h2>
+        <div class="grid" style="gap:10px">
+          <div><label class="muted" for="fDateFrom">From</label><input id="fDateFrom" type="date"></div>
+          <div><label class="muted" for="fDateTo">To</label><input id="fDateTo" type="date"></div>
+          <div><label class="muted" for="fGame">Game</label>
+            <select id="fGame"><option value="">All</option><option>Slots</option><option>Blackjack</option><option>Poker</option><option>Roulette</option><option>Craps</option><option>Sportsbook</option><option>Video Poker</option></select>
+          </div>
+          <div><label class="muted" for="fResult">Result</label>
+            <select id="fResult"><option value="">All</option><option value="cash">Profit</option><option value="no-cash">Loss/Even</option></select>
+          </div>
+          <div><button id="clearFiltersBtn" type="button">Clear filters</button></div>
+        </div>
+        <div style="border-top:1px solid var(--line);margin-top:12px;padding-top:12px">
+          <h3 style="margin:0 0 6px;font-size:16px">Summary</h3>
+          <div id="summary" class="kpis">
+            <div class="kpi"><div class="label">Sessions</div><div class="value" id="kSessions">0</div></div>
+            <div class="kpi"><div class="label">Net Profit</div><div class="value" id="kNet">$0</div></div>
+            <div class="kpi"><div class="label">Minutes</div><div class="value" id="kMinutes">0</div></div>
+            <div class="kpi"><div class="label">Net / Hour</div><div class="value" id="kNph">$0</div></div>
+            <div class="kpi"><div class="label">Win Rate</div><div class="value" id="kWinRate">0%</div></div>
+            <div class="kpi"><div class="label">ROI</div><div class="value" id="kRoi">0%</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:8px">
+        <h2>Sessions</h2>
+        <div class="row">
+          <button id="undoBtn" class="small" title="Undo last change">Undo</button>
+          <div class="muted" id="shownCount">0 shown</div>
+        </div>
+      </div>
+      <div style="overflow:auto">
+        <table id="table">
+          <thead>
+            <tr>
+              <th>Date</th><th>Location</th><th>Game</th><th>Machine</th>
+              <th class="right">Minutes</th>
+              <th class="right">Buy-in</th><th class="right">Cash-out</th><th class="right">Net</th>
+              <th>Notes</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div id="toast" class="toast">
+    <span>Backup reminder: export your data?</span>
+    <button id="toastExport" class="small">Export JSON</button>
+    <button id="toastClose" class="small">Dismiss</button>
+  </div>
+
+<script>
+(function(){
+  const VERSION = "1.1.1";
+  const KEY = 'ct:sessions:v3';
+  const BKP_KEY = 'ct:undo';
+
+  let rows = load();
+  let editingId = '';
+  let lastSnapshot = null;
+
+  let timerStart = null;
+  let timerTicker = null;
+
+  const $ = (id) => document.getElementById(id);
+
+  const el = {
+    form: document.getElementById('form'),
+    date: $('date'), location: $('location'), game: $('game'), machine: $('machine'), minutes: $('minutes'),
+    buyIn: $('buyIn'), cashOut: $('cashOut'), notes: $('notes'),
+    saveBtn: $('saveBtn'), cancelEditBtn: $('cancelEditBtn'), liveNet: $('liveNet'), hint: $('hint'), eDate: $('eDate'), eForm: $('eForm'),
+    fDateFrom: $('fDateFrom'), fDateTo: $('fDateTo'), fGame: $('fGame'), fResult: $('fResult'), clearFiltersBtn: $('clearFiltersBtn'),
+    tbody: $('tbody'), shownCount: $('shownCount'),
+    kSessions: $('kSessions'), kNet: $('kNet'), kMinutes: $('kMinutes'), kNph: $('kNph'), kWinRate: $('kWinRate'), kRoi: $('kRoi'),
+    exportCsvBtn: $('exportCsvBtn'), exportJsonBtn: $('exportJsonBtn'), importJsonBtn: $('importJsonBtn'), importJsonInput: $('importJsonInput'),
+    undoBtn: $('undoBtn'),
+    updateBanner: document.getElementById('updateBanner'), refreshBtn: document.getElementById('refreshBtn'),
+    machinesList: $('machinesList'),
+    timerBtn: $('timerBtn'), timerStatus: $('timerStatus'),
+    toast: $('toast'), toastExport: $('toastExport'), toastClose: $('toastClose'),
+  };
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./service-worker.js?v='+VERSION);
+    navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
+    navigator.serviceWorker.addEventListener('message', (event)=>{ if(event.data==='SW_UPDATE_READY') el.updateBanner.classList.add('show'); });
+  }
+  el.refreshBtn.addEventListener('click', ()=> navigator.serviceWorker.getRegistration().then(reg=>{ reg && reg.waiting && reg.waiting.postMessage('SKIP_WAITING'); }));
+
+  function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4); }
+  function parseNum(x){ const n=Number(x); return Number.isFinite(n)? n : 0; }
+  function fmtCur(n){ try{return new Intl.NumberFormat(undefined,{style:'currency',currency:'USD',maximumFractionDigits:2}).format(n);}catch{return '$'+(n.toFixed?n.toFixed(2):n);} }
+  function fmtPct(x){ return (Number.isFinite(x)? (x*100).toFixed(0) : 0) + '%'; }
+  function save(){ localStorage.setItem(KEY, JSON.stringify(rows)); }
+  function load(){ try{ const raw=localStorage.getItem(KEY); return raw? JSON.parse(raw) : []; }catch{ return []; } }
+  function snapshot(){ lastSnapshot = JSON.stringify(rows); localStorage.setItem(BKP_KEY, lastSnapshot); }
+  function rollback(){ try{ const snap = localStorage.getItem(BKP_KEY); if(!snap) return false; rows = JSON.parse(snap)||[]; save(); return true; }catch{ return false; } }
+  function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c])); }
+
+  function calc(list){
+    const t = list.reduce((a,r)=>{
+      const net = r.cashOut - r.buyIn;
+      a.sessions++; a.net += net; a.minutes += (r.minutes||0);
+      a.buy += (r.buyIn||0); a.wins += (net>0?1:0);
+      return a;
+    }, {sessions:0, net:0, minutes:0, buy:0, wins:0});
+    const hours = t.minutes/60;
+    const roi = t.buy>0 ? (t.net / t.buy) : 0;
+    const winRate = t.sessions>0 ? (t.wins / t.sessions) : 0;
+    return {sessions:t.sessions, net:t.net, minutes:t.minutes, nph: hours? t.net/hours : 0, roi, winRate};
+  }
+
+  function filtered(){
+    const from = el.fDateFrom.value? new Date(el.fDateFrom.value) : null;
+    const to = el.fDateTo.value? new Date(el.fDateTo.value) : null;
+    const game = el.fGame.value;
+    const res = el.fResult.value;
+    return rows.filter(r=>{
+      const d = r.date? new Date(r.date+'T00:00:00') : null;
+      const passFrom = !from || (d && d >= from);
+      const passTo = !to || (d && d <= to);
+      const passGame = !game || r.game===game;
+      const net = (r.cashOut - r.buyIn);
+      const passRes = !res || (res==='cash'? net>0 : net<=0);
+      return passFrom && passTo && passGame && passRes;
+    }).sort((a,b)=> (b.date||'').localeCompare(a.date||'') );
+  }
+
+  function buildMachineList(){
+    const seen = new Set();
+    el.machinesList.innerHTML='';
+    for(const r of rows){
+      const m = (r.machine||'').trim();
+      if(!m || seen.has(m)) continue;
+      seen.add(m);
+      const opt = document.createElement('option');
+      opt.value = m;
+      el.machinesList.appendChild(opt);
+    }
+  }
+
+  function render(){
+    const list = filtered();
+    el.shownCount.textContent = list.length + ' shown';
+    const st = calc(list);
+    el.kSessions.textContent = st.sessions;
+    el.kNet.textContent = fmtCur(st.net);
+    el.kMinutes.textContent = st.minutes;
+    el.kNph.textContent = fmtCur(st.nph||0);
+    el.kWinRate.textContent = fmtPct(st.winRate);
+    el.kRoi.textContent = fmtPct(st.roi);
+
+    el.tbody.innerHTML = '';
+    for(const r of list){
+      const net = (r.cashOut - r.buyIn);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.date || ''}</td>
+        <td>${escapeHtml(r.location)}</td>
+        <td>${escapeHtml(r.game)}</td>
+        <td>${escapeHtml(r.machine)}</td>
+        <td class="right">${r.minutes||0}</td>
+        <td class="right">${fmtCur(r.buyIn||0)}</td>
+        <td class="right">${fmtCur(r.cashOut||0)}</td>
+        <td class="right ${net>0?'net-pos': net<0?'net-neg':''}">${fmtCur(net)}</td>
+        <td class="truncate" title="${escapeHtml(r.notes||'')}">${escapeHtml(r.notes||'')}</td>
+        <td class="nowrap">
+          <button class="small" data-act="edit" data-id="${r.id}">Edit</button>
+          <button class="small" data-act="del" data-id="${r.id}">Delete</button>
+        </td>`;
+      el.tbody.appendChild(tr);
+    }
+
+    buildMachineList();
+  }
+
+  function updateLive(){
+    const net = parseNum(el.cashOut.value) - parseNum(el.buyIn.value);
+    el.liveNet.textContent = 'Net ' + fmtCur(net);
+    const mins = Number(el.minutes.value)||0;
+    const hours = mins/60;
+    el.hint.textContent = mins? ('Net/hr ' + fmtCur(hours? net/hours : 0)) : '';
+  }
+  el.form.addEventListener('input', updateLive);
+
+  function clearErrors(){
+    el.eDate.textContent = '';
+    el.eForm.textContent = '';
+  }
+
+  function validate(){
+    clearErrors();
+    let ok = true;
+    if(!el.date.value){ el.eDate.textContent = 'Date is required.'; ok=false; }
+    const mins = Number(el.minutes.value);
+    if(el.minutes.value && (!Number.isFinite(mins) || mins<0)){ el.eForm.textContent='Minutes must be 0 or more.'; ok=false; }
+    return ok;
+  }
+
+  function formToRow(idExisting){
+    return {
+      id: idExisting || uid(),
+      date: el.date.value || '',
+      location: el.location.value.trim(),
+      game: el.game.value,
+      machine: el.machine.value.trim(),
+      minutes: Number(el.minutes.value)||0,
+      buyIn: parseNum(el.buyIn.value),
+      cashOut: parseNum(el.cashOut.value),
+      notes: el.notes.value.trim(),
+    };
+  }
+
+  function setForm(r){
+    el.date.value = r.date||'';
+    el.location.value = r.location||'';
+    el.game.value = r.game||'';
+    el.machine.value = r.machine||'';
+    el.minutes.value = r.minutes||'';
+    el.buyIn.value = r.buyIn??'';
+    el.cashOut.value = r.cashOut??'';
+    el.notes.value = r.notes||'';
+  }
+
+  function resetForm(){
+    editingId='';
+    el.form.reset();
+    el.saveBtn.textContent='Add session';
+    el.cancelEditBtn.style.display='none';
+    el.liveNet.textContent='Net updates live';
+    el.hint.textContent='';
+    clearErrors();
+    stopTimer(true);
+  }
+
+  // Submit & actions
+  el.form.addEventListener('submit', (ev)=>{
+    ev.preventDefault();
+    if(!validate()) return;
+    snapshot();
+    const row = formToRow(editingId);
+    if(editingId) rows = rows.map(x=> x.id===editingId? row : x);
+    else rows = [row, ...rows];
+    save(); resetForm(); render();
+
+    // Backup reminder every 10 sessions
+    if(rows.length % 10 === 0){
+      showToast();
+    }
+  });
+
+  el.cancelEditBtn.addEventListener('click', resetForm);
+
+  el.tbody.addEventListener('click', (e)=>{
+    const t=e.target.closest('button'); if(!t) return;
+    const id=t.getAttribute('data-id'); const act=t.getAttribute('data-act');
+    if(act==='del'){
+      if(confirm('Delete this session?')){ snapshot(); rows = rows.filter(r=>r.id!==id); save(); if(editingId===id) resetForm(); render(); }
+    } else if(act==='edit'){
+      const r=rows.find(x=>x.id===id); if(!r) return;
+      editingId=id; setForm(r); el.saveBtn.textContent='Save changes'; el.cancelEditBtn.style.display='inline-block'; updateLive(); window.scrollTo({top:0, behavior:'smooth'});
+    }
+  });
+
+  // Filters
+  for(const id of ['fDateFrom','fDateTo','fGame','fResult']) document.getElementById(id).addEventListener('input', render);
+  el.clearFiltersBtn.addEventListener('click', ()=>{ el.fDateFrom.value=''; el.fDateTo.value=''; el.fGame.value=''; el.fResult.value=''; render(); });
+
+  // Undo
+  el.undoBtn.addEventListener('click', ()=>{ if(rollback()){ render(); } });
+
+  // Export / Import
+  el.exportCsvBtn.addEventListener('click', ()=>{
+    const header=['date','location','game','machine','minutes','buyIn','cashOut','net','notes'];
+    const out = rows.map(r=>[r.date,r.location,r.game,r.machine,(r.minutes||0),(r.buyIn||0),(r.cashOut||0),(r.cashOut-r.buyIn),(r.notes||'').replace(/\n/g,' ')]);
+    const csv=[header.join(','), ...out.map(r=> r.map(v=> (typeof v==='string' && /[",\n]/.test(v))? '"'+v.replace(/"/g,'""')+'"' : v).join(','))].join('\n');
+    download('casino_sessions.csv', csv);
+  });
+  el.exportJsonBtn.addEventListener('click', ()=> download('casino_sessions.json', JSON.stringify(rows,null,2)));
+  el.importJsonBtn.addEventListener('click', ()=> el.importJsonInput.click());
+  el.importJsonInput.addEventListener('change', (ev)=>{
+    const f=ev.target.files && ev.target.files[0]; if(!f) return;
+    const reader=new FileReader();
+    reader.onload=()=>{
+      try{
+        const data=JSON.parse(String(reader.result));
+        if(!Array.isArray(data)) throw new Error('Invalid file');
+        rows = data.map(x=>({
+          id: x.id || uid(),
+          date: x.date || '',
+          location: x.location || '',
+          game: x.game || '',
+          machine: x.machine || '',
+          minutes: Number(x.minutes)||0,
+          buyIn: parseNum(x.buyIn),
+          cashOut: parseNum(x.cashOut),
+          notes: x.notes || '',
+        }));
+        save(); render(); ev.target.value='';
+      }catch(e){ alert('Could not import JSON: '+(e && e.message || e)); }
+    };
+    reader.readAsText(f);
+  });
+
+  function download(name, text){const blob=new Blob([text],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);}
+
+  // ===== Timer feature =====
+  function startTimer(){
+    if(timerStart) return; // already running
+    timerStart = Date.now();
+    el.timerBtn.textContent = 'Stop timer';
+    el.timerStatus.style.display = 'inline-block';
+    tickTimer();
+    timerTicker = setInterval(tickTimer, 1000);
+  }
+  function stopTimer(silent){
+    if(!timerStart) return;
+    const elapsedMs = Date.now() - timerStart;
+    const minutes = Math.max(0, Math.round(elapsedMs / 60000));
+    if(!silent){
+      const current = Number(el.minutes.value)||0;
+      if(minutes>0 && minutes>=current){
+        el.minutes.value = minutes;
+        updateLive();
+      }
+    }
+    timerStart = null;
+    el.timerBtn.textContent = 'Start timer';
+    el.timerStatus.style.display = 'none';
+    if(timerTicker){ clearInterval(timerTicker); timerTicker=null; }
+  }
+  function tickTimer(){
+    if(!timerStart) return;
+    const ms = Date.now() - timerStart;
+    const m = Math.floor(ms/60000);
+    const s = Math.floor((ms%60000)/1000);
+    el.timerStatus.textContent = (m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+  }
+  el.timerBtn.addEventListener('click', ()=>{
+    if(timerStart) stopTimer(false); else startTimer();
+  });
+
+  // ===== Toast (backup reminder) =====
+  function showToast(){
+    el.toast.classList.add('show');
+    const hide = ()=> el.toast.classList.remove('show');
+    el.toastClose.onclick = hide;
+    el.toastExport.onclick = ()=>{ hide(); el.exportJsonBtn.click(); };
+    setTimeout(hide, 12000);
+  }
+
+  // Initial
+  render(); updateLive();
+  buildMachineList();
+})();
+</script>
 </body>
 </html>
