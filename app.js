@@ -1,4 +1,3 @@
-// Placeholder app logic
 document.getElementById("exportCsv").addEventListener("click", () => {
   alert("Export CSV clicked");
 });
